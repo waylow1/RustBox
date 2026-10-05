@@ -1,0 +1,39 @@
+flowchart TD
+    subgraph Host["Host System"]
+        A["RustBox Process"]
+    end
+
+    subgraph Creation["Namespace Creation"]
+        direction TB
+        B["<b>CLONE</b><br/>new namespaces"]
+        B1["UTS<br/>hostname isolation"]
+        B2["PID<br/>process isolation"]
+        B3["MOUNT<br/>mount points"]
+        B4["IPC<br/>shared memory"]
+    end
+
+    subgraph Isolation["Filesystem & Limits"]
+        direction TB
+        C["<b>CHROOT</b><br/>change root"]
+        C1["/alpine becomes new /<br/>host filesystem hidden"]
+        
+        D["<b>MOUNTS</b><br/>in mount namespace"]
+        D1["mount --make-rprivate /<br/>prevent propagation"]
+        D2["mount -t proc none /proc<br/>isolated process view"]
+        
+        E["<b>CGROUPS v2</b><br/>resource limits"]
+        E1["/sys/fs/cgroup/rustbox/<br/>cpu.max, memory.max"]
+    end
+
+    subgraph Runtime["Execution"]
+        F["<b>EXEC</b><br/>replace process image"]
+        F1["execvp(command)<br/>becomes PID 1 in container"]
+    end
+
+    A -->|"clone(2)<br/>CLONE_NEWUTS<br/>CLONE_NEWPID<br/>CLONE_NEWNS<br/>CLONE_NEWIPC"| B
+    B --> B1 & B2 & B3 & B4
+    B1 & B2 & B3 & B4 --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G["Container Running<br/>Isolated PID 1<br/>Isolated hostname<br/>Isolated rootfs<br/>Resource limits applied"]

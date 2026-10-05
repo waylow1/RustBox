@@ -1,7 +1,8 @@
 mod container;
-
+mod namespace;
 use container::{Container, ContainerConfig};
 use std::path::PathBuf;
+mod filesystem;
 
 fn print_banner() {
     println!(
@@ -23,24 +24,19 @@ fn print_banner() {
     );
 }
 
-fn main() {
+fn main() -> std::io::Result<()> {
     print_banner();
 
-    let config = ContainerConfig::new(
-        PathBuf::from("./alpine"),
-        String::from("rustbox-demo"),
-        None,
-        None,
-        vec![String::from("/bin/sh")],
-    );
+    namespace::enter_new_uts()?;
+    namespace::set_hostname("rustbox")?;
 
-    let mut container = Container::new(config).with_name("demo");
-    println!("Conteneur créé, état : {:?}", container.state());
+    let rootfs = std::path::Path::new("./alpine");
+    filesystem::enter_rootfs(rootfs)?;
+    println!("Rootfs actif. Contenu de / via le shell :");
 
-    if let Err(e) = container.start() {
-        eprintln!("[rustbox] impossible de démarrer : {e}");
-        eprintln!("[rustbox] : créez un rootfs, ex. `mkdir alpine` + debootstrap/apk");
-        return;
-    }
-    println!("Conteneur terminé, état : {:?}", container.state());
+    std::process::Command::new("/bin/sh")
+        .args(["-c", "echo /* && hostname"])
+        .status()?;
+
+    Ok(())
 }
