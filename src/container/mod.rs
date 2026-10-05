@@ -1,6 +1,5 @@
 pub mod lifecycle;
 pub mod process;
-use std::path::PathBuf;
 
-pub use lifecycle::Container;
+pub use lifecycle::{Container, ContainerState};
 pub use process::ContainerConfig;
