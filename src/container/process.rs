@@ -31,6 +31,12 @@ impl ContainerConfig {
                 "la commande du conteneur est vide",
             ));
         }
+        if self.memory_limit == Some(0) || self.cpu_limit == Some(0) {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "les limites CPU et mémoire doivent être supérieures à zéro",
+            ));
+        }
         if !self.rootfs.is_dir() {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
@@ -46,6 +52,14 @@ impl ContainerConfig {
 
     pub fn hostname(&self) -> &str {
         &self.hostname
+    }
+
+    pub fn memory_limit(&self) -> Option<u64> {
+        self.memory_limit
+    }
+
+    pub fn cpu_limit(&self) -> Option<u64> {
+        self.cpu_limit
     }
 
     pub fn command(&self) -> &[String] {

@@ -1,17 +1,14 @@
 # RustBox
 
-RustBox is a lightweight container runtime written in Rust. It provides functionality for managing containers, filesystems, and cgroups.
+RustBox is an experimental Linux container runtime written in Rust.
 
-## Features
+## Current system milestone
 
-- **Container Management**: Create, start, stop, and delete containers.
-- **Filesystem Management**: Handle container root filesystems and mounts.
-- **Cgroup Management**: Manage CPU and memory resources for containers.
-- **Process Management**: Handle container processes, including creation and lifecycle management.
+- Launches a separate manager process for each container.
+- Creates UTS, PID, and mount namespaces and runs the configured command as PID 1.
+- Uses `chroot`, makes mount propagation private, and mounts `/proc` inside the container.
+- Applies cgroups v2 limits of 2 CPU cores and 2 GiB of memory to the command process.
 
-## Modules
+The demo expects an Alpine root filesystem at `./alpine`, including `/bin/sh` and `/proc`. Run it on Linux with permission to create namespaces and manage `/sys/fs/cgroup`. The cgroup v2 `cpu` and `memory` controllers must be available; RustBox fails rather than silently running without configured limits.
 
-- **Container Module**: Provides functionality for managing containers.
-- **Filesystem Module**: Handles container root filesystems and mounts.
-- **Cgroup Module**: Manages CPU and memory resources for containers.
-- **Process Module**: Manages container processes, including creation and lifecycle management.
+CPU limits are expressed as a number of cores; memory limits are expressed in bytes.

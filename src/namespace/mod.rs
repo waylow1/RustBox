@@ -1,8 +1,10 @@
 use std::ffi::CString;
 use std::io;
 
-pub fn enter_new_uts() -> io::Result<()> {
-    let ret = unsafe { libc::unshare(libc::CLONE_NEWUTS) };
+pub fn enter_container_namespaces() -> io::Result<()> {
+    let ret = unsafe {
+        libc::unshare(libc::CLONE_NEWUTS | libc::CLONE_NEWPID | libc::CLONE_NEWNS)
+    };
     if ret == -1 {
         Err(io::Error::last_os_error())
     } else {

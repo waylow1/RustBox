@@ -1,39 +1,44 @@
 flowchart TD
     subgraph Host["Host System"]
-        A["RustBox Process"]
+        A["RustBox parent process"]
+        H["Manager process"]
     end
 
-    subgraph Creation["Namespace Creation"]
+    subgraph Creation["Namespace Setup"]
         direction TB
-        B["<b>CLONE</b><br/>new namespaces"]
+        B["unshare(2)<br/>CLONE_NEWUTS<br/>CLONE_NEWPID<br/>CLONE_NEWNS"]
         B1["UTS<br/>hostname isolation"]
         B2["PID<br/>process isolation"]
         B3["MOUNT<br/>mount points"]
-        B4["IPC<br/>shared memory"]
     end
 
-    subgraph Isolation["Filesystem & Limits"]
+    subgraph Isolation["Filesystem Isolation"]
         direction TB
         C["<b>CHROOT</b><br/>change root"]
-        C1["/alpine becomes new /<br/>host filesystem hidden"]
-        
-        D["<b>MOUNTS</b><br/>in mount namespace"]
-        D1["mount --make-rprivate /<br/>prevent propagation"]
-        D2["mount -t proc none /proc<br/>isolated process view"]
-        
-        E["<b>CGROUPS v2</b><br/>resource limits"]
-        E1["/sys/fs/cgroup/rustbox/<br/>cpu.max, memory.max"]
+        C1["./alpine becomes new /"]
+        D["mount --make-rprivate /<br/>prevent propagation"]
+        E["PID 1 child mounts proc<br/>inside its PID namespace"]
     end
 
     subgraph Runtime["Execution"]
-        F["<b>EXEC</b><br/>replace process image"]
-        F1["execvp(command)<br/>becomes PID 1 in container"]
+        F["Configured command"]
+        F1["Runs as PID 1"]
     end
 
-    A -->|"clone(2)<br/>CLONE_NEWUTS<br/>CLONE_NEWPID<br/>CLONE_NEWNS<br/>CLONE_NEWIPC"| B
-    B --> B1 & B2 & B3 & B4
-    B1 & B2 & B3 & B4 --> C
-    C --> D
-    D --> E
+    subgraph Resources["Cgroups v2"]
+        R1["cpu.max<br/>2 cores"]
+        R2["memory.max<br/>2 GiB"]
+    end
+
+    A -->|"spawn manager"| H
+    H -->|"create per-container cgroup"| R1 & R2
+    H --> B
+    B --> B1 & B2 & B3
+    B --> D
+    D --> C
+    C --> C1
+    C1 -->|"spawn child into new PID namespace"| E
     E --> F
-    F --> G["Container Running<br/>Isolated PID 1<br/>Isolated hostname<br/>Isolated rootfs<br/>Resource limits applied"]
+    F --> F1
+    F1 --> G["Running with isolated PID, hostname, and rootfs"]
+    R1 & R2 --> F1
